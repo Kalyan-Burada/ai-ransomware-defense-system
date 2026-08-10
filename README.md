@@ -4,6 +4,7 @@
 ![Stage 1 Status](https://img.shields.io/badge/Stage%201-PASSED%20(20%2F20)-brightgreen?style=for-the-badge&logo=pytest)
 ![Stage 2 Status](https://img.shields.io/badge/Stage%202-PASSED%20(14%2F14)-brightgreen?style=for-the-badge&logo=pytest)
 ![Stage 3 Status](https://img.shields.io/badge/Stage%203-PASSED%20(28%2F28)-brightgreen?style=for-the-badge&logo=pytest)
+![Stage 4 Status](https://img.shields.io/badge/Stage%204-PASSED%20(62%2F62)-brightgreen?style=for-the-badge&logo=pytest)
 ![Architecture](https://img.shields.io/badge/Architecture-12--Stage%20Pipeline-orange?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
 
@@ -45,8 +46,14 @@ The pipeline is organized into **11 sequential execution stages** plus a **12th 
                                            │ (Live Process->File Directed Graph)
                                            ▼
  ┌───────────────────────────────────────────────────────────────────────────────────┐
- │                  STAGES 4–5: FEATURE EXTRACTION & ANOMALY MODEL                   │  <-- UPCOMING NEXT
- │           4KB Byte Entropy, One-Class Learning (Isolation Forest / Density)       │
+ │            STAGE 4: MULTI-LAYER FEATURE EXTRACTION & HAWKES PROCESS               │  <-- COMPLETED & VERIFIED (62/62)
+ │         4KB Buffer Sampling, Shannon Entropy, ETD, Hawkes Point Process           │
+ └─────────────────────────────────────────┬─────────────────────────────────────────┘
+                                           │ (Feature Vector: S_entropy, S_ETD, S_dist, S_dev, S_stab, λ_norm)
+                                           ▼
+ ┌───────────────────────────────────────────────────────────────────────────────────┐
+ │                  STAGE 5: ANOMALY SCORING & ONE-CLASS CLUSTERING                  │  <-- UPCOMING NEXT
+ │             Density-Adaptive One-Class Fusion (DAC-OCF / Isolation Forest)        │
  └─────────────────────────────────────────┬─────────────────────────────────────────┘
                                            │
                                            ▼
@@ -77,7 +84,7 @@ The pipeline is organized into **11 sequential execution stages** plus a **12th 
 | **Stage 1** | **Telemetry Collection** | File I/O Interception, Process Provenance, eCAR Schema, SQLite Store | ✅ **Completed & Verified** | 20/20 Pytest Suite Passed. Streams events to `telemetry.db` |
 | **Stage 2** | **Lineage Analysis** | Parent-Child Provenance Tracing & Lineage Rarity ($S_{\text{rel}}$) | ✅ **Completed & Verified** | 14/14 Pytest Suite Passed. Enriches eCAR with lineage context |
 | **Stage 3** | **DBRG Graph Engine** | NetworkX Directed Graph with TDEW Exponential Weight Decay | ✅ **Completed & Verified** | 28/28 Pytest Suite Passed. Builds live process-file interaction graph |
-| **Stage 4** | **Feature Extraction** | 4KB Multi-layer feature extraction & byte entropy profiling | 📅 *Upcoming* | Reads file modification byte streams |
+| **Stage 4** | **Feature Extraction** | 4KB Buffer Sampling, Shannon Entropy, ETD, Hawkes Point Process | ✅ **Completed & Verified** | 62/62 Pytest Suite Passed. Produces per-event feature vectors |
 | **Stage 5** | **Benign Profiling** | One-Class Anomaly Model (Isolation Forest baseline) | 📅 *Upcoming* | Uses `Dataset/RansomwareData.csv` & `Code/preprocessing.ipynb` |
 | **Stage 6** | **Threat Fusion** | Sigmoidal Intent Drift Acceleration Engine | 📅 *Upcoming* | Combines entropy, graph distance, & lineage signals |
 | **Stage 7** | **Trust State Engine** | Momentum Trust Decay Engine & Risk Tiers (SAFE/VERIFY/CRITICAL) | 📅 *Upcoming* | Controls transitions between risk states |
@@ -121,6 +128,43 @@ $$\text{Passive Decay Sweep: } W_{\text{passive}} = W_{\text{old}} \cdot e^{-\la
 
 ---
 
+## 📐 Stage 4: Multi-Layer Feature Extraction & Hawkes Point Process
+
+Stage 4 is the core signal-extraction engine that produces per-event content-level and temporal-level threat features.
+
+### Mathematical Foundations
+
+**Shannon Entropy** (Content Entropy):
+$$H = -\sum_{i=0}^{255} P(x_i) \cdot \log_2 P(x_i) \quad \in [0, 8.0]$$
+
+**Entropy-Topology Divergence** (ETD — behavioral drift):
+$$S_{\text{ETD}} = D_{KL}\big( P(\Delta H, d_{\text{out}} \mid t) \;\|\; P_{\text{benign}} \big)$$
+
+**Hawkes Self-Exciting Point Process** (temporal burstiness):
+$$\lambda(t) = \mu + \sum_{t_i < t} \alpha \cdot e^{-\beta(t - t_i)}$$
+$$n = \frac{\alpha}{\beta} \quad \text{(superheated when } n \geq 1.0\text{)}$$
+
+### Per-Event Feature Vector Output
+
+| Signal | Description | Range |
+|---|---|---|
+| $S_{\text{entropy}}$ | Normalized Shannon entropy of 4KB post-write buffer | [0, 1] |
+| $S_{\text{ETD}}$ | Entropy-Topology Divergence (2D KL-divergence) | [0, 1] |
+| $S_{\text{dist}}$ | Graph Fan-Out Distance (normalized process out-degree) | [0, 1] |
+| $S_{\text{dev}}$ | Trajectory Velocity (rate of new file targets/sec) | [0, 1] |
+| $S_{\text{stab}}$ | Operational Stability (repeated vs new interactions) | [0, 1] |
+| $\lambda_{\text{norm}}$ | Normalized Hawkes intensity | [0, 1] |
+| $n$ | Hawkes branching ratio | [0, ∞) |
+
+### Sub-Module Specifications (`src/stage_4_features/`)
+
+1. **`entropy_calculator.py`**: 4KB buffer reader, Shannon entropy, 256-bin byte-frequency histogram variance/kurtosis.
+2. **`hawkes_engine.py`**: Per-process Hawkes self-exciting point process with intensity tracking, branching ratio, superheated detection, and horizon-based memory pruning.
+3. **`etd_engine.py`**: Rolling 2D joint histogram engine with pre-built benign baseline and KL-divergence computation.
+4. **`feature_extractor.py`**: Main orchestrator querying Stage 3 DBRG for topology metrics and producing complete feature vectors.
+
+---
+
 ## 📁 Project Directory Structure
 
 ```text
@@ -140,17 +184,24 @@ ai-ransomware-defense-system/
 │   └── demo_replay.py            # Lineage demo replay utility
 ├── src/                          # ⚡ Stage 3+ Source Code
 │   ├── __init__.py               # Root package marker
-│   └── stage_3_dbrg/             # 🕸️ Stage 3: DBRG & TDEW Engine
-│       ├── __init__.py           # Exports DBRGManager, TDEWEngine, GC
-│       ├── tdew_calculator.py    # TDEW exponential decay formula calculator
-│       ├── dbrg_manager.py       # Thread-safe NetworkX DiGraph manager
-│       ├── garbage_collector.py  # Daemon thread for passive edge pruning
-│       └── visualize_dbrg.py    # Graph visualization generator
+│   ├── stage_3_dbrg/             # 🕸️ Stage 3: DBRG & TDEW Engine
+│   │   ├── __init__.py           # Exports DBRGManager, TDEWEngine, GC
+│   │   ├── tdew_calculator.py    # TDEW exponential decay formula calculator
+│   │   ├── dbrg_manager.py       # Thread-safe NetworkX DiGraph manager
+│   │   ├── garbage_collector.py  # Daemon thread for passive edge pruning
+│   │   └── visualize_dbrg.py     # Graph visualization generator
+│   └── stage_4_features/         # 📐 Stage 4: Feature Extraction & Hawkes
+│       ├── __init__.py           # Exports FeatureExtractor, HawkesEngine, ETDEngine
+│       ├── entropy_calculator.py # 4KB buffer sampling & Shannon entropy engine
+│       ├── hawkes_engine.py      # Hawkes self-exciting point process tracker
+│       ├── etd_engine.py         # Entropy-Topology Divergence (KL-divergence)
+│       └── feature_extractor.py  # Multi-layer feature extraction orchestrator
 ├── tests/                        # 🧪 Automated & Manual Test Suite
 │   ├── __init__.py
 │   ├── test_stage1.py            # 20 automated tests for Stage 1
 │   ├── test_stage2.py            # 14 automated tests for Stage 2
 │   ├── test_stage_3_dbrg.py      # 28 automated tests for Stage 3
+│   ├── test_stage_4_features.py  # 62 automated tests for Stage 4
 │   ├── manual_test_stage_3.py    # 6-item interactive manual verification CLI
 │   └── demo_ransomware_scenario.py # Live ransomware scenario simulation demo
 ├── stage3_dbrg_graph.png         # 📊 Generated DBRG visualization diagram
@@ -170,9 +221,12 @@ cd ai-ransomware-defense-system
 pip install watchdog psutil pyyaml pytest networkx matplotlib numpy
 ```
 
-### 2. Run All Automated Unit Test Suites (Stage 1 + Stage 2 + Stage 3)
+### 2. Run All Automated Unit Test Suites (Stage 1 + Stage 2 + Stage 3 + Stage 4)
 ```bash
 python3 -m pytest tests/ -v
+
+# Run Stage 4 tests only
+python3 -m pytest tests/test_stage_4_features.py -v
 ```
 
 ### 3. Run Stage 3 Interactive Manual Verification CLI

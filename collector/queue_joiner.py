@@ -144,7 +144,8 @@ class QueueJoiner:
                 enriched = self._enrich(item)
 
                 if enriched:
-                    self._db.enqueue(enriched)
+                    if self._db:
+                        self._db.enqueue(enriched)
                     if self._on_event:
                         try:
                             self._on_event(enriched)
