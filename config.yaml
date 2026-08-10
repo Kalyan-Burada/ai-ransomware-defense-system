@@ -51,5 +51,24 @@ logging:
 # defined here so Stage 1 can tag events for downstream)
 # -----------------------------------------------------------
 telemetry:
-  decay_lambda: 0.01       # λ for TDEW (Stage 3 will read this)
+  decay_lambda: 0.01       # lambda for TDEW (Stage 3 will read this)
   ecar_version: "1.0"
+
+# -----------------------------------------------------------
+# Stage 4: Feature Extraction & Hawkes Process
+# -----------------------------------------------------------
+stage_4:
+  buffer_size: 4096          # 4KB post-write buffer sampling size
+  hawkes:
+    mu: 0.1                  # Background (baseline) event rate
+    alpha: 0.5               # Excitation magnitude per event
+    beta: 0.8                # Excitation decay rate
+    lambda_max: 10.0         # Normalization saturation cap
+    horizon_sec: 120.0       # Max lookback window for event timestamps
+  etd:
+    window_size: 50          # Rolling observation window per process
+    s_etd_cap: 10.0          # KL-divergence normalization cap
+  trajectory:
+    max_fanout: 50           # Fan-out degree normalization cap
+    max_target_rate: 20.0    # Max new-target rate (files/sec) for S_dev
+
