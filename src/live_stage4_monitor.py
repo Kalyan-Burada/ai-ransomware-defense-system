@@ -96,17 +96,18 @@ def main():
     parser.add_argument("--path", type=str, help="Custom folder path to watch in real-time")
     args = parser.parse_args()
 
-    # Determine paths to watch
-    test_dir = PROJECT_ROOT / "monitored_test_dir"
-    test_dir.mkdir(exist_ok=True)
+    # Determine paths to watch (defaulting to user's Downloads directory)
+    downloads_dir = Path.home() / "Downloads"
+    if not downloads_dir.exists():
+        downloads_dir.mkdir(parents=True, exist_ok=True)
 
-    watch_paths = [str(test_dir.resolve())]
+    watch_paths = [str(downloads_dir.resolve())]
     if args.path:
         custom_p = Path(args.path).expanduser().resolve()
-        if custom_p.exists():
+        if custom_p.exists() and str(custom_p) not in watch_paths:
             watch_paths.append(str(custom_p))
         else:
-            print(f"⚠️ Custom path does not exist: {custom_p}")
+            print(f"⚠️ Custom path does not exist or already added: {custom_p}")
 
     print_banner(watch_paths)
 
