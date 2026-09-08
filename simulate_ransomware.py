@@ -18,8 +18,8 @@ import random
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent
-TEST_DIR = PROJECT_ROOT / "monitored_test_dir"
-TEST_DIR.mkdir(exist_ok=True)
+TEST_DIR = Path.home() / "Downloads" / "ransomware_simulation_test"
+TEST_DIR.mkdir(parents=True, exist_ok=True)
 
 if sys.platform == "win32":
     import io
