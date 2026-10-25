@@ -179,6 +179,46 @@ body {
   gap: 16px;
 }
 
+.demo-video-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 14px;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.25));
+  border: 1px solid rgba(129, 140, 248, 0.45);
+  border-radius: var(--radius-full);
+  color: #ffffff;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-decoration: none;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.2);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.demo-video-btn:hover {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.38), rgba(139, 92, 246, 0.42));
+  border-color: rgba(165, 180, 252, 0.85);
+  box-shadow: 0 0 18px rgba(99, 102, 241, 0.45);
+  transform: translateY(-1px);
+  color: #ffffff;
+}
+
+.demo-video-btn:active {
+  transform: translateY(0);
+}
+
+.demo-video-btn .demo-video-icon {
+  fill: #a5b4fc;
+  transition: transform 0.2s ease, fill 0.2s ease;
+}
+
+.demo-video-btn:hover .demo-video-icon {
+  fill: #ffffff;
+  transform: scale(1.15);
+}
+
 .status-badge {
   display: flex;
   align-items: center;
